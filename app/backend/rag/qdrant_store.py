@@ -1,190 +1,183 @@
-import re
-import requests
+"""
+Ingest Qdrant OpenAPI specs into Qdrant vector DB
+Embedding model: all-MiniLM-L6-v2 (384 dims)
+Purpose: API-aware RAG with zero hallucination
+"""
+
 import logging
 from typing import List
-from urllib.parse import urljoin
-from bs4 import BeautifulSoup
-from qdrant_client import QdrantClient  # ADD THIS
-from qdrant_client.models import Distance, VectorParams  # ADD THIS
+
+import httpx
+import yaml
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, VectorParams
+
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Qdrant
 
 # -------------------------------------------------
-# Logging setup
+# Logging
 # -------------------------------------------------
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 # -------------------------------------------------
 # Constants
 # -------------------------------------------------
-QDRANT_BASE_URL = "https://api.qdrant.tech"
-QDRANT_SECTIONS = [
-    "https://api.qdrant.tech/api-reference/collections/",
-    "https://api.qdrant.tech/api-reference/points/",
-    "https://api.qdrant.tech/api-reference/search/",
-    "https://api.qdrant.tech/api-reference/indexes/",
-    "https://api.qdrant.tech/api-reference/snapshots/",
-    "https://api.qdrant.tech/api-reference/aliases/",
-    "https://api.qdrant.tech/api-reference/distributed/",
-    "https://api.qdrant.tech/api-reference/service/",
+OPENAPI_BASE_URL = "https://raw.githubusercontent.com/qdrant/qdrant/master/openapi"
+
+OPENAPI_FILES = [
+    "openapi-collections.ytt.yaml",
+    "openapi-points.ytt.yaml",
+    "openapi-main.ytt.yaml",
+    "openapi-shards.ytt.yaml",
+    "openapi-shard-snapshots.ytt.yaml",
+    "openapi-snapshots.ytt.yaml",
+    "openapi-service.ytt.yaml",
+    "openapi-cluster.ytt.yaml",
 ]
 
-COLLECTION_QDRANT = "qdrant_api_complete"
 QDRANT_URL = "http://localhost:6333"
+COLLECTION_NAME = "qdrant_api_complete"
+
+EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+VECTOR_DIM = 384
 
 # -------------------------------------------------
-# ✅ AUTO CREATE COLLECTION IF NEEDED
+# Embeddings
 # -------------------------------------------------
-def ensure_collection_exists():
-    """Create collection if it doesn't exist (384 dims = all-MiniLM-L6-v2)"""
-    client = QdrantClient(QDRANT_URL)
-    
-    if client.collection_exists(COLLECTION_QDRANT):
-        logger.info(f"✅ Collection '{COLLECTION_QDRANT}' already exists")
-        return
-    
-    # Create new collection with correct dimensions
-    vectors_config = VectorParams(size=384, distance=Distance.COSINE)
-    
-    client.create_collection(
-        collection_name=COLLECTION_QDRANT,
-        vectors_config=vectors_config
-    )
-    logger.info(f"✅ Created collection '{COLLECTION_QDRANT}' (384-dim COSINE)")
-
-# -------------------------------------------------
-# Your existing helpers (unchanged)
-# -------------------------------------------------
-def fetch_text(url: str) -> str:
-    logger.info(f"Fetching: {url}")
-    r = requests.get(url, timeout=60)
-    r.raise_for_status()
-    return r.text
-
-def extract_all_subpages(section_url: str) -> List[str]:
-    html = fetch_text(section_url)
-    soup = BeautifulSoup(html, 'html.parser')
-    
-    urls = set()
-    for link in soup.find_all('a', href=True):
-        href = link['href']
-        if (href.startswith('/api-reference/') and 
-            '/api-reference/' + section_url.split('/api-reference/')[1] in href and
-            not href.endswith('/')):
-            full_url = urljoin(QDRANT_BASE_URL, href)
-            urls.add(full_url)
-    
-    content_links = soup.find_all('a', href=re.compile(r'/api-reference/'))
-    for link in content_links:
-        href = link['href']
-        if href.startswith('/'):
-            full_url = urljoin(QDRANT_BASE_URL, href)
-            if any(section.split('/api-reference/')[1] in full_url for section in QDRANT_SECTIONS):
-                urls.add(full_url)
-    
-    logger.info(f"Found {len(urls)} subpages in {section_url}")
-    return list(urls)
-
-def html_to_text(html: str) -> str:
-    soup = BeautifulSoup(html, 'html.parser')
-    for unwanted in soup(['nav', 'header', 'footer', 'aside', 'script', 'style']):
-        unwanted.decompose()
-    
-    main_content = soup.find(['main', '.content', '[class*="content"]', 'article'])
-    if main_content:
-        soup = main_content
-    
-    text = soup.get_text()
-    lines = (line.strip() for line in text.splitlines())
-    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-    text = ' '.join(chunk for chunk in chunks if len(chunk) > 3)
-    
-    return text[:30000]
-
-# -------------------------------------------------
-# FIXED Embeddings
-# -------------------------------------------------
-logger.info("Loading embedding model: all-MiniLM-L6-v2")
+logger.info("🔤 Loading embedding model")
 embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2",
-    model_kwargs={'device': 'cpu'},
-    encode_kwargs={'normalize_embeddings': True}
+    model_name=EMBEDDING_MODEL,
+    model_kwargs={"device": "cpu"},
+    encode_kwargs={"normalize_embeddings": True},
 )
 
 # -------------------------------------------------
-# MAIN INGESTION (unchanged)
+# Qdrant helpers
 # -------------------------------------------------
-def ingest_qdrant_api_complete():
-    logger.info("=== QDRANT API COMPLETE INGESTION ===")
-    
-    all_urls = set()
-    for section in QDRANT_SECTIONS:
-        logger.info(f"🔍 Scraping section: {section}")
-        subpages = extract_all_subpages(section)
-        all_urls.update(subpages)
-    
-    all_urls = list(all_urls)
-    logger.info(f"📋 Total unique Qdrant API pages: {len(all_urls)}")
-    
-    docs: List[Document] = []
-    for i, url in enumerate(all_urls, 1):
-        try:
-            logger.info(f"[{i}/{len(all_urls)}] Processing: {url}")
-            html = fetch_text(url)
-            cleaned_text = html_to_text(html)
-            
-            if len(cleaned_text.strip()) > 300:
-                docs.append(Document(
-                    page_content=cleaned_text,
-                    metadata={
-                        "source": url,
-                        "type": "qdrant_api",
-                        "section": url.split('/api-reference/')[1].split('/')[0]
-                    }
-                ))
-        except Exception as e:
-            logger.warning(f"❌ Skip {url}: {e}")
-    
-    logger.info(f"✅ Collected {len(docs)} valid documents")
-    
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=150,
-        separators=["\n\n", "\n", ". ", " ", ""]
+def ensure_collection_exists() -> None:
+    """Create Qdrant collection if it does not exist"""
+    client = QdrantClient(url=QDRANT_URL)
+
+    if client.collection_exists(COLLECTION_NAME):
+        logger.info(f"✅ Collection '{COLLECTION_NAME}' already exists")
+        return
+
+    logger.info(f"🆕 Creating collection '{COLLECTION_NAME}'")
+    client.create_collection(
+        collection_name=COLLECTION_NAME,
+        vectors_config=VectorParams(
+            size=VECTOR_DIM,
+            distance=Distance.COSINE,
+        ),
     )
-    
-    chunks = splitter.split_documents(docs)
-    chunks = [c for c in chunks if len(c.page_content.strip()) > 50]
-    
-    logger.info(f"✅ Final chunks: {len(chunks)}")
+    logger.info("✅ Collection created")
+
+
+# -------------------------------------------------
+# OpenAPI loaders
+# -------------------------------------------------
+def load_openapi_yaml(filename: str) -> dict:
+    url = f"{OPENAPI_BASE_URL}/{filename}"
+    logger.info(f"📥 Fetching OpenAPI spec: {filename}")
+    response = httpx.get(url, timeout=30, follow_redirects=True)
+    response.raise_for_status()
+    return yaml.safe_load(response.text)
+
+
+def openapi_to_documents(spec: dict, source_file: str) -> List[Document]:
+    """Convert OpenAPI spec into LangChain Documents"""
+    documents: List[Document] = []
+
+    for path, methods in spec.get("paths", {}).items():
+        for method, meta in methods.items():
+            document = Document(
+                page_content=f"""
+ENDPOINT:
+{method.upper()} {path}
+
+OPERATION ID:
+{meta.get("operationId", "")}
+
+SUMMARY:
+{meta.get("summary", "")}
+
+DESCRIPTION:
+{meta.get("description", "")}
+
+REQUEST BODY:
+{meta.get("requestBody", {})}
+
+RESPONSES:
+{meta.get("responses", {})}
+""".strip(),
+                metadata={
+                    "source": source_file,
+                    "path": path,
+                    "method": method.upper(),
+                    "operation_id": meta.get("operationId", ""),
+                    "deprecated": meta.get("deprecated", False),
+                    "type": "qdrant_api",
+                },
+            )
+            documents.append(document)
+
+    return documents
+
+
+# -------------------------------------------------
+# Ingestion pipeline
+# -------------------------------------------------
+def ingest_openapi_documents() -> List[Document]:
+    """Load and chunk all OpenAPI specs"""
+    all_docs: List[Document] = []
+
+    for file in OPENAPI_FILES:
+        spec = load_openapi_yaml(file)
+        all_docs.extend(openapi_to_documents(spec, file))
+
+    logger.info(f"📄 Collected {len(all_docs)} endpoint documents")
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=800,
+        chunk_overlap=120,
+        separators=["\n\n", "\n", ". ", " "],
+    )
+
+    chunks = splitter.split_documents(all_docs)
+    logger.info(f"✂️ Created {len(chunks)} text chunks")
+
     return chunks
 
-# -------------------------------------------------
-# ✅ FIXED Store function
-# -------------------------------------------------
-def store_qdrant_api():
-    # STEP 1: Ensure collection exists
-    ensure_collection_exists()
-    
-    # STEP 2: Ingest documents
-    chunks = ingest_qdrant_api_complete()
-    
-    # STEP 3: Use SAFE from_documents (now collection exists)
-    logger.info(f"📤 Storing {len(chunks)} chunks to '{COLLECTION_QDRANT}'")
-    vs = Qdrant.from_documents(
-        documents=chunks,
-        embedding=embeddings,
-        url=QDRANT_URL,  # ✅ FIXED: use 'url' not 'path'
-        collection_name=COLLECTION_QDRANT,
-    )
-    logger.info("🎉 QDRANT API INGESTION COMPLETE!")
-    return vs
 
 # -------------------------------------------------
-# RUN
+# Store in Qdrant
+# -------------------------------------------------
+def store_qdrant_api_docs() -> None:
+    ensure_collection_exists()
+
+    chunks = ingest_openapi_documents()
+
+    logger.info(f"📤 Storing {len(chunks)} chunks in Qdrant")
+    Qdrant.from_documents(
+        documents=chunks,
+        embedding=embeddings,
+        url=QDRANT_URL,
+        collection_name=COLLECTION_NAME,
+    )
+
+    logger.info("🎉 Qdrant API ingestion completed successfully")
+
+
+# -------------------------------------------------
+# Entry point
 # -------------------------------------------------
 if __name__ == "__main__":
-    store_qdrant_api()
+    store_qdrant_api_docs()
+# -------------------------------------------------

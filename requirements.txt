@@ -10,3 +10,4 @@ qdrant-client
 beautifulsoup4
 streamlit 
 requests
+playwright
