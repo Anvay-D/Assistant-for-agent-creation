@@ -57,6 +57,7 @@ streamlit run app.frontend.chat_ui.py --server.port 8600
 * Chat interface to type questions and get answers.
 * Displays source documents from Qdrant used to generate answers.
 
+![Chat UI Screenshot](assets/Querying.png "Frontend Chat UI")
 ---
 
 ## How it works
