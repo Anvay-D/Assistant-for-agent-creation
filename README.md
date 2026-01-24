@@ -1,6 +1,6 @@
 # Qdrant RAG Helper
 
-This project provides a **Qdrant RAG-based chatbot** to help coders and programmers query the latest Qdrant documentation, APIs, and code examples without hallucinations using a **Retrieval-Augmented Generation (RAG)** approach.
+This project provides a **Qdrant RAG-based chatbot** to help coders and programmers query the latest Qdrant documentation [Qdrant Documentation](https://api.qdrant.tech/api-reference), APIs, and code examples without hallucinations using a **Retrieval-Augmented Generation (RAG)** approach.
 
 ---
 
