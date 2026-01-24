@@ -1,0 +1,10 @@
+langchain-core
+langchain-community
+sentence-transformers
+uvicorn
+langchain-qdrant 
+langchain-huggingface 
+langchain-text-splitters 
+langchain-openai
+qdrant-client
+beautifulsoup4
