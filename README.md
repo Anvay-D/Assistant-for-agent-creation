@@ -39,7 +39,7 @@ Navigate to the root of the project and run:
 uvicorn app.backend.main:app --reload
 ```
 
-* **Backend URL:** `http://localhost:6333`
+* **Backend URL:** `http://localhost:8000`
 * Provides `/chat` endpoint for frontend to query.
 * Health check endpoint available at `/health`.
 
