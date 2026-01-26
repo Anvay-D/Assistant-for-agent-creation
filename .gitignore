@@ -2,3 +2,4 @@
 dist/
 .venv/
 *.py[cod]
+app/backend/config.py
