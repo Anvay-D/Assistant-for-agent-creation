@@ -2,7 +2,7 @@
 from qdrant_client import QdrantClient
 from sentence_transformers import SentenceTransformer
 
-COLLECTION = "qdrant_api_complete"
+COLLECTION = "langchain_docs"
 
 client = QdrantClient("http://localhost:6333")
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
