@@ -1,83 +1,165 @@
 import re
-import requests
 import logging
 from typing import List
 
+import requests
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-# NEW (recommended)
-from langchain_huggingface import HuggingFaceEmbeddings  # pip install -U langchain-huggingface sentence-transformers
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Qdrant
 
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, VectorParams
 
+# -------------------------------------------------
+# Logging
+# -------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
 )
 logger = logging.getLogger(__name__)
 
+# -------------------------------------------------
+# Constants
+# -------------------------------------------------
 LLMS_TXT_URL = "https://docs.langchain.com/llms.txt"
-COLLECTION = "langchain_docs"
 QDRANT_URL = "http://localhost:6333"
 
+LANGCHAIN_COLLECTION = "langchain_docs"
+LANGGRAPH_COLLECTION = "langgraph_docs"
 
+EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+VECTOR_DIM = 384
+
+# -------------------------------------------------
+# Embeddings
+# -------------------------------------------------
+logger.info("🔤 Loading embedding model")
+embeddings = HuggingFaceEmbeddings(
+    model_name=EMBEDDING_MODEL,
+    model_kwargs={"device": "cpu"},
+    encode_kwargs={"normalize_embeddings": True},
+)
+
+# -------------------------------------------------
+# Qdrant helpers
+# -------------------------------------------------
+def ensure_collection_exists(collection_name: str) -> None:
+    client = QdrantClient(url=QDRANT_URL)
+
+    if client.collection_exists(collection_name):
+        logger.info(f"✅ Collection '{collection_name}' already exists")
+        return
+
+    logger.info(f"🆕 Creating collection '{collection_name}'")
+    client.create_collection(
+        collection_name=collection_name,
+        vectors_config=VectorParams(
+            size=VECTOR_DIM,
+            distance=Distance.COSINE,
+        ),
+    )
+    logger.info("✅ Collection created")
+
+# -------------------------------------------------
+# Fetch helpers
+# -------------------------------------------------
 def fetch_text(url: str) -> str:
-    logger.info(f"Fetching URL: {url}")
+    logger.info(f"Fetching: {url}")
     r = requests.get(url, timeout=60)
     r.raise_for_status()
-    logger.info(f"Fetched {len(r.text)} characters from {url}")
     return r.text
 
 
 def extract_urls_from_llms_txt(text: str) -> List[str]:
+    # Markdown-style links: [title](url)
     urls = re.findall(r"\((https?://[^)]+)\)", text)
-    logger.info(f"Extracted {len(urls)} URLs from llms.txt")
+    logger.info(f"🔗 Extracted {len(urls)} URLs from llms.txt")
     return urls
 
+# -------------------------------------------------
+# Ingestion logic
+# -------------------------------------------------
+def ingest_docs(filter_keyword: str) -> List[Document]:
+    """
+    filter_keyword:
+        "langchain"  -> LangChain docs
+        "langgraph"  -> LangGraph docs
+    """
+    llms_txt = fetch_text(LLMS_TXT_URL)
+    urls = extract_urls_from_llms_txt(llms_txt)
 
-def html_to_text(html_or_md: str) -> str:
-    return html_or_md
+    docs: List[Document] = []
 
+    for i, url in enumerate(urls, start=1):
+        if filter_keyword not in url.lower():
+            continue
 
-logger.info("Starting LangChain docs ingestion")
+        try:
+            logger.info(f"[{i}] Processing {url}")
+            content = fetch_text(url)
 
-logger.info("Downloading llms.txt")
-llms_txt = fetch_text(LLMS_TXT_URL)
-urls = extract_urls_from_llms_txt(llms_txt)
+            docs.append(
+                Document(
+                    page_content=content,
+                    metadata={
+                        "source": url,
+                        "project": filter_keyword,
+                    },
+                )
+            )
+        except Exception as e:
+            logger.warning(f"Skipping {url}: {e}")
 
-docs: List[Document] = []
-for i, u in enumerate(urls, start=1):
-    try:
-        logger.info(f"[{i}/{len(urls)}] Processing {u}")
-        raw = fetch_text(u)
-        docs.append(Document(page_content=html_to_text(raw), metadata={"source": u}))
-    except Exception as e:
-        logger.warning(f"Skipping {u} due to error: {e}")
+    logger.info(f"📄 Collected {len(docs)} raw documents")
+    return docs
 
-logger.info(f"Total raw documents collected: {len(docs)}")
+# -------------------------------------------------
+# Chunking
+# -------------------------------------------------
+def chunk_documents(docs: List[Document]) -> List[Document]:
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1200,
+        chunk_overlap=150,
+        separators=["\n\n", "\n", ". ", " "],
+    )
 
-logger.info("Splitting documents into chunks")
-splitter = RecursiveCharacterTextSplitter(chunk_size=1200, chunk_overlap=150)
+    chunks = splitter.split_documents(docs)
+    chunks = [c for c in chunks if c.page_content.strip()]
+    logger.info(f"✂️ Created {len(chunks)} chunks")
+    return chunks
 
-chunks = splitter.split_documents(docs)
-chunks = [c for c in chunks if c.page_content.strip()]
-logger.info(f"Total chunks after splitting & cleanup: {len(chunks)}")
+# -------------------------------------------------
+# Store pipeline
+# -------------------------------------------------
+def store_docs(collection_name: str, chunks: List[Document]) -> None:
+    ensure_collection_exists(collection_name)
 
-logger.info("Loading embedding model: all-MiniLM-L6-v2")
-embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2",
-    model_kwargs={"device": "cpu"},
-    encode_kwargs={"normalize_embeddings": True},
-)  # init style per docs [web:29][web:30]
+    Qdrant.from_documents(
+        documents=chunks,
+        embedding=embeddings,
+        url=QDRANT_URL,
+        collection_name=collection_name,
+    )
 
-logger.info(f"Storing chunks in Qdrant collection '{COLLECTION}' at {QDRANT_URL}")
-vs = Qdrant.from_documents(
-    documents=chunks,
-    embedding=embeddings,
-    url=QDRANT_URL,
-    collection_name=COLLECTION,
-)
+    logger.info(f"🎉 Stored {len(chunks)} chunks in '{collection_name}'")
 
-logger.info("Ingestion completed successfully")
-logger.info(f"Ingested chunks count: {len(chunks)}")
+# -------------------------------------------------
+# Entry point
+# -------------------------------------------------
+if __name__ == "__main__":
+    logger.info("🚀 Starting LangChain + LangGraph ingestion")
+
+    # LangChain
+    langchain_docs = ingest_docs("langchain")
+    langchain_chunks = chunk_documents(langchain_docs)
+    store_docs(LANGCHAIN_COLLECTION, langchain_chunks)
+
+    # LangGraph
+    langgraph_docs = ingest_docs("langgraph")
+    langgraph_chunks = chunk_documents(langgraph_docs)
+    store_docs(LANGGRAPH_COLLECTION, langgraph_chunks)
+
+    logger.info("✅ Ingestion completed successfully")
