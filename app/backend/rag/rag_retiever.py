@@ -1,8 +1,10 @@
 # retriever_qdrant.py
 from qdrant_client import QdrantClient
 from sentence_transformers import SentenceTransformer
+from Lang_chain_store import LANGCHAIN_COLLECTION ,LANGGRAPH_COLLECTION 
 
-COLLECTION = "langchain_docs"
+# Set the collection wanted to retrieve using the Constant
+COLLECTION = LANGGRAPH_COLLECTION
 
 client = QdrantClient("http://localhost:6333")
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
