@@ -3,8 +3,8 @@ import requests
 
 API_URL = "http://localhost:8000/chat"
 
-st.set_page_config(page_title="Qdrant RAG Chat", layout="centered")
-st.title("💬 Qdrant RAG Assistant")
+st.set_page_config(page_title="Langchain RAG Chat", layout="centered")
+st.title("💬 Langchain RAG Assistant")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -15,7 +15,7 @@ for msg in st.session_state.messages:
         st.markdown(msg["content"])
 
 # Input
-prompt = st.chat_input("Ask about Qdrant API...")
+prompt = st.chat_input("Ask about Langchain API...")
 
 if prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})

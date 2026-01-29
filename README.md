@@ -1,13 +1,13 @@
-# Qdrant RAG Helper
+# Langchain RAG Helper
 
-This project provides a **Qdrant RAG-based chatbot** to help coders and programmers query the latest Qdrant documentation [Qdrant Documentation](https://api.qdrant.tech/api-reference), APIs, and code examples without hallucinations using a **Retrieval-Augmented Generation (RAG)** approach.
+This project provides a **Langchain RAG-based chatbot** to help coders and programmers query the latest [Langchain Documentation](https://docs.langchain.com/oss/python/langchain/overview), APIs, and code examples without hallucinations using a **Retrieval-Augmented Generation (RAG)** approach.
 
 ---
 
 ## Features
 
-* Query Qdrant documentation using natural language.
-* Retrieves relevant context from Qdrant collection to ensure accurate answers.
+* Query Langchain documentation using natural language.
+* Retrieves relevant context from Langchain collection to ensure accurate answers.
 * Uses OpenRouter LLM for answer generation.
 * Streamlit-based frontend for interactive chat interface.
 
@@ -16,7 +16,7 @@ This project provides a **Qdrant RAG-based chatbot** to help coders and programm
 ## Requirements
 
 * Python 3.13+
-* Qdrant running on `localhost:6333`
+* Langchain running on `localhost:6333`
 * Install required Python packages:
 
 ```bash
@@ -55,7 +55,7 @@ streamlit run app.frontend.chat_ui.py --server.port 8600
 
 * **Frontend URL:** `http://localhost:8600`
 * Chat interface to type questions and get answers.
-* Displays source documents from Qdrant used to generate answers.
+* Displays source documents from Langchain used to generate answers.
 
 ## Snapshot of the UI
 
@@ -65,7 +65,7 @@ streamlit run app.frontend.chat_ui.py --server.port 8600
 ## How it works
 
 1. **Frontend**: User enters a question in the chat UI.
-2. **Backend**: Receives the question and queries Qdrant vector database for relevant documents.
+2. **Backend**: Receives the question and queries Langchain vector database for relevant documents.
 3. **LLM**: Backend sends the question and retrieved context to OpenRouter LLM.
 4. **Response**: Backend returns the answer to frontend.
 5. **Frontend**: Displays answer with source information for transparency.
@@ -78,17 +78,24 @@ This ensures answers are **grounded in actual documentation** and reduces halluc
 
 * Ask questions like:
 
-  * "How can I search a point in Qdrant?"
-  * "Show me how to use Qdrant batch insert API."
-* The system will return the answer along with relevant context from the Qdrant docs.
+  * "How can I create an agent in Langchain?"
+  * "Show me how to use Langchain short term memory insert API."
+* The system will return the answer along with relevant context from the Langchain docs.
 
 ---
 
 ## Notes
 
-* Ensure Qdrant is running and the collections are populated.
+* Ensure Langchain is running and the collections are populated.
 * Ensure your OpenRouter API key is set in the backend environment.
-* Frontend and backend communicate via HTTP; frontend never talks to Qdrant directly.
+* Frontend and backend communicate via HTTP; frontend never talks to Langchain directly.
+* If running the Qdrant database locally use the image with command.
+  
+```bash
+docker run -p 6333:6333 -p 6334:6334 \
+    -v $(pwd)/qdrant_data:/qdrant/storage \
+    qdrant/qdrant
+```
 
 ---
 
@@ -98,5 +105,5 @@ For issues or help:
 
 * Check that all dependencies are installed.
 * Ensure the correct ports are used (`8000` backend, `8600` frontend).
-* Verify Qdrant collections exist and are populated with documents.
+* Verify Langchain collections exist and are populated with documents.
 * OpenRouter LLM API key should be valid

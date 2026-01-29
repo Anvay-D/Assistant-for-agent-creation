@@ -1,12 +1,12 @@
 # app/config.py
 import os
 
-OPENROUTER_API_KEY = "OPENROUTER_API_KEY"
+OPENROUTER_API_KEY = "Key"
 
 
-OPENROUTER_URL = "OPENROUTER_URL"
-OPENROUTER_MODEL = "MODEL_NAME"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_MODEL = "Model"
 
-QDRANT_URL = "CLOUD OR LOCAL URL"
+QDRANT_URL = "VectorDB"
 
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"

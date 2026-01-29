@@ -2,6 +2,7 @@
 import requests
 import os
 from config import OPENROUTER_MODEL , OPENROUTER_API_KEY, OPENROUTER_URL
+from agent_prompt.Langchain import LANGCHAIN_PROMPT
 
 OPENROUTER_API_KEY = OPENROUTER_API_KEY
 MODEL = OPENROUTER_MODEL 
@@ -16,7 +17,7 @@ def call_llm(prompt: str) -> str:
         json={
             "model": MODEL,
             "messages": [
-                {"role": "system", "content": "You are a precise technical assistant who specializes in API documentation such as Qdrant and LangChain. Answer only from provided context with api and curl calls of the api in response. Do not respond with api that are marked as deprecated"},
+                {"role": "system", "content": LANGCHAIN_PROMPT},
                 {"role": "user", "content": prompt},
             ],
             "temperature": 0.2,
