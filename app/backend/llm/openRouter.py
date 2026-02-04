@@ -2,7 +2,6 @@
 import requests
 import os
 from config import OPENROUTER_MODEL , OPENROUTER_API_KEY, OPENROUTER_URL
-from agent_prompt.Langchain import LANGCHAIN_PROMPT
 
 OPENROUTER_API_KEY = OPENROUTER_API_KEY
 MODEL = OPENROUTER_MODEL 

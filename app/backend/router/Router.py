@@ -12,7 +12,7 @@ from agent_prompt.RouterQuery import ROUTER_PROMPT
 # ----------------------------
 class RouterState(TypedDict):
     input: str
-    decision: Literal["langchain", "langgraph", "both"]
+    decision: Literal["qdrant","langchain", "langgraph", "All"]
 
 
 # ----------------------------
