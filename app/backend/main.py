@@ -23,9 +23,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🔹 Simple in-memory short-term memory store
-SESSION_MEMORY = {}
-
 class ChatRequest(BaseModel):
     question: str
     session_id: str | None = None
