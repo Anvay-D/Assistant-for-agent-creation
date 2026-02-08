@@ -1,15 +1,37 @@
-# LangGraph RAG Helper
+# Agentic AI RAG Helper
 
-This project provides a **LangGraph RAG-based chatbot** to help coders and programmers query the latest [LangGraph Documentation](https://docs.langchain.com/oss/python/langgraph/overview), APIs, and code examples without hallucinations using a **Retrieval-Augmented Generation (RAG)** approach.
+Agentic AI RAG Helper is a production-ready Retrieval-Augmented Generation (RAG) chatbot built with LangGraph, LangChain, and Qdrant, designed to help developers query **LangGraph, LangChain and Qdrant**  documentation, APIs, and code examples with **zero hallucinations**.
+
+This project demonstrates how to build an Agentic AI system using graph-based reasoning, vector search, and LLM orchestration.
+
+---
+## Why this project?
+
+Modern LLM apps fail when they hallucinate APIs, agents, or workflows.
+This project solves that by:
+* Retrieving real documentation from LangChain, LangGraph, and Qdrant
+* Feeding only verified context to the LLM (RAG)
+* Using LangGraph to orchestrate agentic reasoning
+* Returning answers with sources for transparency
+
+If you’re learning or building with:
+* LangChain
+* LangGraph
+* Qdrant
+* Agentic AI
+* RAG systems
 
 ---
 
 ## Features
 
-* Query LangGraph documentation using natural language.
-* Retrieves relevant context from LangGraph collection to ensure accurate answers.
-* Uses OpenRouter LLM for answer generation.
-* Streamlit-based frontend for interactive chat interface.
+* Agentic AI architecture using LangGraph
+* RAG-based chatbot grounded in real LangGraph documentation
+* Semantic search powered by Qdrant vector database
+* LLM-agnostic (via OpenRouter – supports OpenAI, Anthropic, Mistral, etc.)
+* Streamlit chat UI with source citations
+* FastAPI backend with clean API boundaries
+* Strong hallucination control via retrieval grounding
 
 ---
 
@@ -27,8 +49,26 @@ pip install -r requirements.txt
 
 ## Configurations
 * Create a **config.py** file in **app/backend**
-* Set the parameters OPENROUTER_API_KEY , OPENROUTER_URL , OPENROUTER_MODEL , QDRANT_URL
+* Contents of config.py
+```bash
+  OPENROUTER_API_KEY = "your_api_key"
+  OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+  OPENROUTER_MODEL = "openai/gpt-4o-mini"
+  QDRANT_URL = "http://localhost:6333"
+```
 * LLM can be used based on choice like any model and provider OPENROUTER
+
+---
+
+## Prerequisites
+* Preform the step below
+```bash
+cd app/backend/rag
+python3 lang_chain_store.py
+python3 qdrant_store.py
+```
+* This step is necessary for data ingestion and database creation.
+* Skipping this step can result in No documentation of the query by chatbot
 
 ---
 
@@ -79,19 +119,20 @@ This ensures answers are **grounded in actual documentation** and reduces halluc
 
 ## Usage Example
 
-* Ask questions like:
-
-  * "How can I create an agent in LangGraph?"
-  * "Show me how to use LangGraph short term memory insert API."
-* The system will return the answer along with relevant context from the LangGraph docs.
+### Ask questions like:
+ * How do I create an agent using LangGraph?
+ * Explain LangGraph short-term memory APIs
+ * How does LangChain retrieval work with Qdrant?
+ * Show an example of a LangGraph workflow
+ * How to store and query embeddings in Qdrant?
 
 ---
 
 ## Notes
 
-* Ensure LangGraph is running and the collections are populated.
+* Ensure Qdrant is running and the collections are populated.
 * Ensure your OpenRouter API key is set in the backend environment.
-* Frontend and backend communicate via HTTP; frontend never talks to LangGraph directly.
+* Frontend and backend communicate via HTTP; frontend never talks to Qdrant directly.
 * If running the Qdrant database locally use the image with command.
   
 ```bash
