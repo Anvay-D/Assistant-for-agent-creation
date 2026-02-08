@@ -1,13 +1,13 @@
-# Langchain RAG Helper
+# LangGraph RAG Helper
 
-This project provides a **Langchain RAG-based chatbot** to help coders and programmers query the latest [Langchain Documentation](https://docs.langchain.com/oss/python/langchain/overview), APIs, and code examples without hallucinations using a **Retrieval-Augmented Generation (RAG)** approach.
+This project provides a **LangGraph RAG-based chatbot** to help coders and programmers query the latest [LangGraph Documentation](https://docs.langchain.com/oss/python/langgraph/overview), APIs, and code examples without hallucinations using a **Retrieval-Augmented Generation (RAG)** approach.
 
 ---
 
 ## Features
 
-* Query Langchain documentation using natural language.
-* Retrieves relevant context from Langchain collection to ensure accurate answers.
+* Query LangGraph documentation using natural language.
+* Retrieves relevant context from LangGraph collection to ensure accurate answers.
 * Uses OpenRouter LLM for answer generation.
 * Streamlit-based frontend for interactive chat interface.
 
@@ -16,7 +16,7 @@ This project provides a **Langchain RAG-based chatbot** to help coders and progr
 ## Requirements
 
 * Python 3.13+
-* Langchain running on `localhost:6333`
+* LangGraph running on `localhost:6333`
 * Install required Python packages:
 
 ```bash
@@ -26,7 +26,8 @@ pip install -r requirements.txt
 ---
 
 ## Configurations
-* Set the parameters OPENROUTER_API_KEY , OPENROUTER_URL , OPENROUTER_MODEL , QDRANT_URL in app/backend/config.py
+* Create a **config.py** file in **app/backend**
+* Set the parameters OPENROUTER_API_KEY , OPENROUTER_URL , OPENROUTER_MODEL , QDRANT_URL
 * LLM can be used based on choice like any model and provider OPENROUTER
 
 ---
@@ -36,7 +37,8 @@ pip install -r requirements.txt
 Navigate to the root of the project and run:
 
 ```bash
-uvicorn app.backend.main:app --reload
+cd app/backend
+uvicorn main:app --reload
 ```
 
 * **Backend URL:** `http://localhost:8000`
@@ -50,22 +52,23 @@ uvicorn app.backend.main:app --reload
 Run the Streamlit frontend:
 
 ```bash
-streamlit run app.frontend.chat_ui.py --server.port 8600
+cd app/frontend
+streamlit run chat_ui.py --server.port 8600
 ```
 
 * **Frontend URL:** `http://localhost:8600`
 * Chat interface to type questions and get answers.
-* Displays source documents from Langchain used to generate answers.
+* Displays source documents from LangGraph used to generate answers.
 
 ## Snapshot of the UI
 
-![Chat UI Screenshot](assets/Querying.png "Frontend Chat UI")
+![Chat UI Screenshot](assets/Assistant.png "Frontend Chat UI")
 ---
 
 ## How it works
 
 1. **Frontend**: User enters a question in the chat UI.
-2. **Backend**: Receives the question and queries Langchain vector database for relevant documents.
+2. **Backend**: Receives the question and queries LangGraph vector database for relevant documents.
 3. **LLM**: Backend sends the question and retrieved context to OpenRouter LLM.
 4. **Response**: Backend returns the answer to frontend.
 5. **Frontend**: Displays answer with source information for transparency.
@@ -78,17 +81,17 @@ This ensures answers are **grounded in actual documentation** and reduces halluc
 
 * Ask questions like:
 
-  * "How can I create an agent in Langchain?"
-  * "Show me how to use Langchain short term memory insert API."
-* The system will return the answer along with relevant context from the Langchain docs.
+  * "How can I create an agent in LangGraph?"
+  * "Show me how to use LangGraph short term memory insert API."
+* The system will return the answer along with relevant context from the LangGraph docs.
 
 ---
 
 ## Notes
 
-* Ensure Langchain is running and the collections are populated.
+* Ensure LangGraph is running and the collections are populated.
 * Ensure your OpenRouter API key is set in the backend environment.
-* Frontend and backend communicate via HTTP; frontend never talks to Langchain directly.
+* Frontend and backend communicate via HTTP; frontend never talks to LangGraph directly.
 * If running the Qdrant database locally use the image with command.
   
 ```bash
@@ -105,5 +108,5 @@ For issues or help:
 
 * Check that all dependencies are installed.
 * Ensure the correct ports are used (`8000` backend, `8600` frontend).
-* Verify Langchain collections exist and are populated with documents.
+* Verify LangGraph collections exist and are populated with documents.
 * OpenRouter LLM API key should be valid

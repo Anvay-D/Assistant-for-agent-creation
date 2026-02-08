@@ -4,7 +4,7 @@ import requests
 API_URL = "http://localhost:8000/chat"
 
 st.set_page_config(page_title="Langchain RAG Chat", layout="centered")
-st.title("💬 Langchain RAG Assistant")
+st.title("💬 Agentic AI RAG Assistant")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
