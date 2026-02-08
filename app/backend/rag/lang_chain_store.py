@@ -11,7 +11,7 @@ from langchain_community.vectorstores import Qdrant
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams
-
+from rag.collection_store import (LANGCHAIN_COLLECTION, LANGGRAPH_COLLECTION)
 # -------------------------------------------------
 # Logging
 # -------------------------------------------------
@@ -26,9 +26,6 @@ logger = logging.getLogger(__name__)
 # -------------------------------------------------
 LLMS_TXT_URL = "https://docs.langchain.com/llms.txt"
 QDRANT_URL = "http://localhost:6333"
-
-LANGCHAIN_COLLECTION = "langchain_docs"
-LANGGRAPH_COLLECTION = "langgraph_docs"
 
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 VECTOR_DIM = 384

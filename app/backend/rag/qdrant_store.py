@@ -16,7 +16,7 @@ from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Qdrant
-
+from rag.collection_store import QDRANT_COLLECTION
 # -------------------------------------------------
 # Logging
 # -------------------------------------------------
@@ -43,7 +43,7 @@ OPENAPI_FILES = [
 ]
 
 QDRANT_URL = "http://localhost:6333"
-COLLECTION_NAME = "qdrant_api_complete"
+
 
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 VECTOR_DIM = 384
@@ -65,13 +65,13 @@ def ensure_collection_exists() -> None:
     """Create Qdrant collection if it does not exist"""
     client = QdrantClient(url=QDRANT_URL)
 
-    if client.collection_exists(COLLECTION_NAME):
-        logger.info(f"✅ Collection '{COLLECTION_NAME}' already exists")
+    if client.collection_exists(QDRANT_COLLECTION):
+        logger.info(f"✅ Collection '{QDRANT_COLLECTION}' already exists")
         return
 
-    logger.info(f"🆕 Creating collection '{COLLECTION_NAME}'")
+    logger.info(f"🆕 Creating collection '{QDRANT_COLLECTION}'")
     client.create_collection(
-        collection_name=COLLECTION_NAME,
+        collection_name=QDRANT_COLLECTION,
         vectors_config=VectorParams(
             size=VECTOR_DIM,
             distance=Distance.COSINE,
@@ -169,7 +169,7 @@ def store_qdrant_api_docs() -> None:
         documents=chunks,
         embedding=embeddings,
         url=QDRANT_URL,
-        collection_name=COLLECTION_NAME,
+        collection_name=QDRANT_COLLECTION,
     )
 
     logger.info("🎉 Qdrant API ingestion completed successfully")

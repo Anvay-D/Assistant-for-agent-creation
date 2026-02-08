@@ -2,12 +2,11 @@
 import requests
 import os
 from config import OPENROUTER_MODEL , OPENROUTER_API_KEY, OPENROUTER_URL
-from agent_prompt.Langchain import LANGCHAIN_PROMPT
 
 OPENROUTER_API_KEY = OPENROUTER_API_KEY
 MODEL = OPENROUTER_MODEL 
 
-def call_llm(prompt: str) -> str:
+def call_llm(prompt: str, system_prompt: str) -> str:
     response = requests.post(
         OPENROUTER_URL,
         headers={
@@ -17,7 +16,7 @@ def call_llm(prompt: str) -> str:
         json={
             "model": MODEL,
             "messages": [
-                {"role": "system", "content": LANGCHAIN_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt},
             ],
             "temperature": 0.2,
@@ -27,3 +26,4 @@ def call_llm(prompt: str) -> str:
 
     response.raise_for_status()
     return response.json()["choices"][0]["message"]["content"]
+

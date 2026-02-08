@@ -13,7 +13,7 @@ client = QdrantClient("http://localhost:6333")
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
 
-def retrieve_context(query: str, top_k: int = 5) -> str:
+def retrieve_context(query: str,collection: str, top_k: int = 5) -> str:
     # 1. Ensure the query isn't empty before encoding
     if not query.strip():
         return "No query provided."
@@ -21,7 +21,7 @@ def retrieve_context(query: str, top_k: int = 5) -> str:
     query_vector = embedder.encode(query).tolist()
 
     response = client.query_points(
-        collection_name=COLLECTION,
+        collection_name=collection,
         query=query_vector,
         limit=top_k,
         with_payload=True,

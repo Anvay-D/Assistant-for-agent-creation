@@ -2,12 +2,16 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
+from router.Router import route_query
+from agent_prompt.summarization import SUMMARIZATION_PROMPT
+from rag.lang_chain_store import LANGCHAIN_COLLECTION, LANGGRAPH_COLLECTION
+from rag.qdrant_store import QDRANT_COLLECTION
 from rag.rag_retiever import retrieve_context
 from llm.openRouter import call_llm
-
+from memory.short_memory import get_session_id, get_short_memory, add_to_memory
 app = FastAPI(
-    title="Qdrant RAG Chat API",
-    description="Ask questions over Qdrant documentation using RAG + OpenRouter",
+    title="Techincal Helper RAG Chat API",
+    description="Ask questions over documentation using RAG + LangGraph routing",
     version="1.0.0",
 )
 
@@ -21,39 +25,96 @@ app.add_middleware(
 
 class ChatRequest(BaseModel):
     question: str
+    session_id: str | None = None
 
 
 class ChatResponse(BaseModel):
     answer: str
     context_used: bool
+    session_id: str 
 
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
-    context = retrieve_context(req.question)
+    
+    session_id = get_session_id(req.session_id)
 
+    memory = get_short_memory(session_id)
+
+    memory_text = "\n".join(
+        f"User: {m['user']}\nAssistant: {m['assistant']}"
+        for m in memory[-5:]  # keep last 5 turns
+    )
+
+    print("Memory", memory_text)
+
+    # 1️⃣ Decide which KB to use
+    decision = route_query(req.question)
+
+    # 2️⃣ Retrieve context
+    contexts = []
+
+    if decision in ("langchain", "All"):
+        ctx = retrieve_context(
+            req.question,
+            collection=LANGCHAIN_COLLECTION,
+        )
+        if ctx.strip():
+            contexts.append(ctx)
+
+    if decision in ("langgraph", "All"):
+        ctx = retrieve_context(
+            req.question,
+            collection=LANGGRAPH_COLLECTION,
+        )
+        if ctx.strip():
+            contexts.append(ctx)
+
+    if decision in ("qdrant", "All"):
+        ctx = retrieve_context(
+            req.question,
+            collection=QDRANT_COLLECTION,
+        )
+        if ctx.strip():
+            contexts.append(ctx)
+
+    merged_context = "\n\n".join(contexts)
+
+    # 3️⃣ Summarize / answer
     prompt = f"""
-You are answering questions about the Qdrant API.
+    You are summarizing technical documentation.
+
+Your goal:
+- Compress the content
+- Preserve technical accuracy
+- Explain concepts clearly
+- Do NOT add new information
+- You can write python code with examples of API calls and custom API based on the user query with appropriate context and logic.
+- You can create an agent based on the user query and the provided context.
 
 Use ONLY the information below.
 If the answer is not present, say "Not found in documentation".
 
 =====================
 CONTEXT:
-{context}
+{merged_context}
 =====================
+Previous conversation history:
+{memory_text}
 
 QUESTION:
 {req.question}
-
-Answer clearly with steps and examples if applicable.
 """
 
-    answer = call_llm(prompt)
+    answer = call_llm(prompt, SUMMARIZATION_PROMPT)
+
+    add_to_memory(session_id, req.question, answer)
+
 
     return ChatResponse(
         answer=answer,
-        context_used=bool(context.strip()),
+        context_used=bool(merged_context.strip()),
+        session_id=session_id,
     )
 
 
