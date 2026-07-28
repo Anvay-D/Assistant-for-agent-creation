@@ -38,7 +38,7 @@ If you’re learning or building with:
 ## Requirements
 
 * Python 3.13+
-* LangGraph running on `localhost:6333`
+* Qdrant running on `localhost:6333`
 * Install required Python packages:
 
 ```bash
@@ -82,8 +82,9 @@ uvicorn main:app --reload
 ```
 
 * **Backend URL:** `http://localhost:8000`
-* Provides `/chat` endpoint for frontend to query.
-* Health check endpoint available at `/health`.
+* Provides `/api/v1/chat` endpoint for frontend to query.
+* Health check endpoint available at `/api/v1/health`.
+* Interactive API documentation at `/docs`.
 
 ---
 

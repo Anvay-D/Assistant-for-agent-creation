@@ -1,5 +1,3 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
 from uuid import uuid4
 
 
@@ -7,11 +5,15 @@ from uuid import uuid4
 memory_store = {}          # key -> list of prior examples
 
 def get_session_id(session_id):
-    """Return the list of stored examples for this session."""
-    return memory_store.get(session_id, []) or str(uuid4())  # generate new session_id if not provided
+    """Return a valid session_id, generating new one if not provided."""
+    if session_id and session_id in memory_store:
+        return session_id
+    new_id = str(uuid4())
+    memory_store[new_id] = []
+    return new_id
 
 def get_short_memory(session_id):
-    """Persist a new example (hotpath or background)."""
+    """Get memory list for the session."""
     return memory_store.setdefault(session_id, [])
 
 def add_to_memory(session_id, user_msg, assistant_reply):
