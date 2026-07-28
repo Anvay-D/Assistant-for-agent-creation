@@ -60,8 +60,43 @@ pip install -r requirements.txt
 
 ---
 
-## Prerequisites
-* Preform the step below
+## Quick Start (Recommended)
+
+### One-Command Deployment
+```bash
+# 1. Setup environment
+make setup
+
+# 2. Edit .env with your OpenRouter API key
+nano .env
+
+# 3. Start all services
+make run
+```
+
+This automatically:
+- Starts Qdrant vector database
+- Runs data ingestion
+- Starts backend API (port 8000)
+- Starts frontend UI (port 8600)
+
+**Access Points:**
+- Frontend: http://localhost:8600
+- Backend: http://localhost:8000
+- Qdrant: http://localhost:6333/dashboard
+
+### Manual Docker Commands
+```bash
+# Using docker-compose directly
+docker-compose up -d --build
+```
+
+---
+
+## Manual Setup (Without Docker)
+
+### Prerequisites
+Perform the steps below:
 ```bash
 cd app/backend/rag
 python3 lang_chain_store.py
@@ -134,8 +169,9 @@ This ensures answers are **grounded in actual documentation** and reduces halluc
 * Ensure Qdrant is running and the collections are populated.
 * Ensure your OpenRouter API key is set in the backend environment.
 * Frontend and backend communicate via HTTP; frontend never talks to Qdrant directly.
-* If running the Qdrant database locally use the image with command.
-  
+* Docker deployment handles all infrastructure automatically.
+* For manual Qdrant setup (without Docker):
+
 ```bash
 docker run -p 6333:6333 -p 6334:6334 \
     -v $(pwd)/qdrant_data:/qdrant/storage \

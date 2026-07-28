@@ -628,3 +628,83 @@ streamlit run chat_ui.py --server.port 8600
 - API Docs: `http://localhost:8000/docs`
 - Frontend UI: `http://localhost:8600`
 - Qdrant Dashboard: `http://localhost:6333/dashboard`
+
+---
+
+## 16. Docker Deployment Architecture
+
+### 16.1 Container Orchestration
+
+The system uses Docker Compose for simplified multi-component deployment:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Docker Compose Network                        │
+│                                                                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
+│  │   Frontend   │  │   Backend    │  │   Qdrant     │           │
+│  │  Streamlit   │◄─┤   FastAPI    │◄─┤  Vector DB   │           │
+│  │   Port 8600  │  │   Port 8000  │  │   Port 6333  │           │
+│  └──────────────┘  └──────────────┘  └──────────────┘           │
+│         │                 │                 │                   │
+│         │                 │                 │                   │
+│  ┌──────▼─────────────────▼─────────────────▼──────┐           │
+│  │              Shared Network (default)            │           │
+│  └──────────────────────────────────────────────────┘           │
+│                                                                  │
+│  ┌──────────────────────────────┐                               │
+│  │      Data Ingestion          │                               │
+│  │   (One-time Container)       │                               │
+│  └──────────────────────────────┘                               │
+│                                                                  │
+│  ┌──────────────────────────────┐                               │
+│  │      Persistent Volume       │                               │
+│  │      qdrant_storage          │                               │
+│  └──────────────────────────────┘                               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 16.2 Docker Services
+
+| Service | Purpose | Dependencies | Health Check |
+|---------|---------|--------------|--------------|
+| `qdrant` | Vector database | None | `/health` endpoint |
+| `data-ingestion` | Populate Qdrant collections | qdrant (healthy) | N/A (one-shot) |
+| `backend` | FastAPI server | qdrant, data-ingestion | `/api/v1/health` |
+| `frontend` | Streamlit UI | backend (healthy) | N/A |
+
+### 16.3 Deployment Commands
+
+```bash
+# Full deployment with build
+make run
+
+# Stop all services
+make stop
+
+# Clean all data
+make clean
+
+# Run ingestion only
+make ingest
+```
+
+### 16.4 Environment Configuration
+
+Create `.env` from template:
+```bash
+make setup  # Copies .env.example to .env
+```
+
+Required variables:
+- `OPENROUTER_API_KEY` - LLM provider API key
+- `QDRANT_URL` - Auto-set to internal Docker network
+
+### 16.5 Benefits of Docker Deployment
+
+1. **Simplified Setup**: Single command starts entire stack
+2. **Dependency Management**: All services versioned in containers
+3. **Network Isolation**: Internal Docker network for service communication
+4. **Data Persistence**: Qdrant data survives container restarts
+5. **Health Monitoring**: Automatic service health checks
+6. **Reproducible Environment**: Consistent across all deployments
