@@ -2,5 +2,9 @@
 dist/
 .venv/
 *.py[cod]
+<<<<<<< HEAD
 app/backend/config.py
 .env
+=======
+app/backend/config.py.env
+>>>>>>> a4f0a06 (Gitignore updated)
