@@ -87,8 +87,8 @@ This automatically:
 
 ### Manual Docker Commands
 ```bash
-# Using docker-compose directly
-docker-compose up -d --build
+# Using docker compose (modern syntax)
+docker compose up -d --build
 ```
 
 ---

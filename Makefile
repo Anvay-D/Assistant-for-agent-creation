@@ -11,23 +11,26 @@ help:
 setup:
 	@if [ ! -f .env ]; then \
 		cp .env.example .env; \
-		echo "Created .env file. Please edit it with your API keys."; \
+		echo "Created .env file from template."; \
+		echo "Please edit .env with your OpenRouter API key."; \
 	else \
-		echo ".env file already exists."; \
+		echo ".env file exists - skipping creation."; \
 	fi
 
 run: setup
-	docker-compose up -d --build
+	@command -v docker >/dev/null 2>&1 || { echo "Docker is not installed. Please install Docker first."; exit 1; }
+	@docker compose version >/dev/null 2>&1 || { echo "Docker Compose is not available. Please update Docker."; exit 1; }
+	docker compose up -d --build
 	@echo "Services starting..."
 	@echo "Frontend: http://localhost:8600"
 	@echo "Backend:  http://localhost:8000"
 	@echo "Qdrant:   http://localhost:6333/dashboard"
 
 stop:
-	docker-compose down
+	docker compose down
 
 clean:
-	docker-compose down -v
+	docker compose down -v
 
 ingest:
-	docker-compose run --rm data-ingestion
+	docker compose run --rm data-ingestion
