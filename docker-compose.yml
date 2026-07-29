@@ -11,7 +11,7 @@ services:
       - qdrant_storage:/qdrant/storage
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:6333/"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:6333/collections"]
       interval: 10s
       timeout: 5s
       retries: 5
